@@ -1,0 +1,154 @@
+---
+title: "Practical Machine Learning"
+author: "Nasim"
+date: "5 November 2018"
+output: html_document
+---
+
+Background
+==========
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Data
+=====
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+What you shoud submit:
+=====================
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+Your submission for the Peer Review portion should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders.
+
+You must apply machine learning algorithm to the 20 test cases available in the test data above and submit your predictions in appropriate format to the Course Project Prediction Quiz for automated grading. The programming assingment are shown in bellow - 
+
+Reproduceability:
+================
+The seed was set at 1234 for all code. The same seed should be used in order to reproduce the results. The packages were downloaded and installed, for instance caret and randomForest to reproduce the results below. 
+
+Model framework:
+===============
+In this analysis, the variable is classe and a factor variable with 5 levels. For this data set, participants performed one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in 5 different ways, such as:
+
+1.Exactly according to the specification (Class A)
+2.Throwing the elbows to the front (Class B)
+3.Lifting the dumbbell only halfway (Class C)
+4.Lowering the dumbbell only halfway (Class D)
+5.Throwing the hips to the front (Class E)?
+
+
+Cross-validation:
+================
+The cross-validation will be performed to evaluate predictive models by partitioning the original sample into a training set to train the model, and a test set to evaluate into two subsamples. In this analysis, the model is fitted for both train and test dataset with the proportion of 60% train and 40% test setdata. The most accurate model is chosen and will be tested on the testing data set.    
+
+Expected out-of-sample- error:
+============================
+The expected out-of-sample error will correspond to the quantity. In this case, 1 - accuracy in the cross validation data where the propotion of correct classified observation over the total sample in the subtesting data set. Expected accuracy in the out-of-sample data set. Hence, the expected value of the out-of-sample error will correspnod to the expected number of missclassified obsevation of the data set, which is quantity.The cross validation data set will present 1-accuracy.
+
+
+Packages, Library and Seed:
+==========================
+Installing packages, library and setting the seed for reproduceability:
+
+```{r}
+library(caret)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+```
+
+```{r}
+set.seed(1234)
+```
+The training data is loaded from the location and the clean-up
+
+```{r}
+traindata <- read.csv("H:/Data Science Online Course/Machinelearning/project/pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+```
+
+The test data is loaded from the location and the clean-up
+
+```{r}
+testdata <- read.csv("H:/Data Science Online Course/Machinelearning/project/pml-testing.csv", na.strings = c("NA", "#DIV/0!", ""))
+```
+
+```{r}
+dim(traindata)
+dim(testdata)
+```
+
+Delete columns with all missing values
+```{r}
+traindata <- traindata[, colSums(is.na(traindata)) == 0]
+testdata <- testdata[, colSums(is.na(testdata)) == 0]
+traindata <- traindata[, -c(1:7)]
+testdata <- testdata[, -c(1:7)]
+#head(traindata)
+#head(testdata)
+```
+
+
+The taining data partioning in to two
+```{r}
+TrainIn <- createDataPartition(y = traindata$classe, p=0.60, list = FALSE)
+
+mytraindata <- traindata[TrainIn,]
+mytestdata <- traindata[-TrainIn,]
+
+dim(mytraindata)
+dim(mytestdata)
+#head(mytraindata)
+#head(mytestdata)
+```
+
+The data is cleaned using the follwing transform
+```{r}
+#datanzv <- nearZeroVar(mytraindata, saveMetrics = TRUE)
+```
+
+```{r}
+plot(mytraindata$classe, col = "lightblue", main = "The variable class with bar plot levels", xlab = "class levels", ylab = "frequency",
+     border= "black")
+```
+
+The above graphs shows the relationship between the frequency and magnitude. Here, level A is the most frequent with more than 3000 occurrences while level D is the least frequent where the occurrences is around 2500. 
+
+Prediction model using - random forest:
+
+```{r}
+model <- randomForest(classe ~., data = mytraindata, method = "class")
+
+prediction <- predict(model, mytestdata, type = "class")
+
+confusionMatrix(prediction, mytestdata$classe)
+```
+
+Prediction model using - Decission Tree
+```{r}
+model2 <- rpart(classe ~ ., data = mytraindata, method = "class")
+fancyRpartPlot(model2)
+
+prediction2 <- predict(model2, mytestdata, type = "class")
+
+confusionMatrix(prediction2, mytestdata$classe)
+```
+
+The above results present significant accuracy improvement by using random forest model 99% (95% CI : (0.9903, 0.9943)) as compared to decision tree model 0.739 (95% CI : (0.7294, 0.7489)). So, the random forest model is chosen. We can observe that the out-of-sample error is 0.5% out of 1 against the cross validation set. In this analysis, we have taken 20 cases in to our consideration.
+
+Submission
+==========
+```{r}
+finalpredict <- predict(model2, testdata, type ="class")
+finalpredict
+```
+
+
+
